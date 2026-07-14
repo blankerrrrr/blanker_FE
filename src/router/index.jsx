@@ -1,0 +1,84 @@
+import { createBrowserRouter } from 'react-router-dom'
+import HomePage from '../pages/HomePage.jsx'
+import InterestsOnboardingPage from '../pages/InterestsOnboardingPage.jsx'
+import InterestPage from '../pages/InterestPage.jsx'
+import CategoryInterestDetailPage from '../pages/CategoryInterestDetailPage.jsx'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage.jsx'
+import LoginPage from '../pages/LoginPage.jsx'
+import NotFoundPage from '../pages/NotFoundPage.jsx'
+import OnboardingPage from '../pages/OnboardingPage.jsx'
+import OtherInterestDetailPage from '../pages/OtherInterestDetailPage.jsx'
+import PostDetailPage from '../pages/PostDetailPage.jsx'
+import ProfilePage from '../pages/ProfilePage.jsx'
+import SearchPage from '../pages/SearchPage.jsx'
+import SettingsPage from '../pages/SettingsPage.jsx'
+import SignUpPage from '../pages/SignUpPage.jsx'
+import SplashPage from '../pages/SplashPage.jsx'
+import VisitHistoryPage from '../pages/VisitHistoryPage.jsx'
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <SplashPage />,
+  },
+  {
+    path: '/onboarding',
+    element: <OnboardingPage />,
+  },
+  {
+    path: '/onboarding/interests',
+    element: <InterestsOnboardingPage />,
+  },
+  {
+    path: '/onboarding/interests/other',
+    element: <OtherInterestDetailPage />,
+  },
+  {
+    path: '/onboarding/interests/:categoryId',
+    element: <CategoryInterestDetailPage />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/signup',
+    element: <SignUpPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: '/home',
+    element: <HomePage />,
+  },
+  {
+    path: '/interest',
+    element: <InterestPage />,
+  },
+  {
+    path: '/posts/:postId',
+    element: <PostDetailPage />,
+  },
+  {
+    path: '/search',
+    element: <SearchPage />,
+  },
+  {
+    path: '/profile',
+    element: <ProfilePage />,
+  },
+  {
+    path: '/profile/history',
+    element: <VisitHistoryPage />,
+  },
+  {
+    path: '/settings',
+    element: <SettingsPage />,
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
+])
