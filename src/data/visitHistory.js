@@ -17,3 +17,14 @@ export function groupVisitHistory(items) {
 
   return [...groups.values()]
 }
+
+export function normalizeVisitHistory(data) {
+  if (!Array.isArray(data)) return []
+
+  return data.flatMap((entry) =>
+    Object.entries(entry ?? {}).map(([date, items]) => ({
+      date,
+      items: Array.isArray(items) ? items : [],
+    })),
+  )
+}

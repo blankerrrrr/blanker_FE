@@ -1,7 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
-import { createInterestTarget } from '../api/interestsApi.js'
+import {
+  createInterestTarget,
+  getSelectedInterestTargets,
+  syncSelectedInterestTargets,
+} from '../api/interestsApi.js'
 import logo from '../assets/logo.svg'
 import { useAuth } from '../auth/useAuth.js'
 import Button from '../components/Button.jsx'
@@ -14,7 +18,7 @@ const Page = styled.main`
   min-height: 100svh;
   flex-direction: column;
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 30px 20px 112px;
   background: #fff;
 `
 
@@ -259,18 +263,60 @@ const CardDescription = styled.p`
 `
 
 const NextButton = styled(Button)`
-  margin-top: 10px;
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 30;
+  width: min(calc(100% - 40px), 362px);
+  transform: translateX(-50%);
 `
 
 function OtherInterestDetailPage() {
+  const location = useLocation()
   const navigate = useNavigate()
   const { accessToken } = useAuth()
   const config = interestCategoryConfigs.other
   const [sensitivity, setSensitivity] = useState(50)
   const [topic, setTopic] = useState('')
   const [topics, setTopics] = useState(config.recommendations)
+  const [allSelectedTargets, setAllSelectedTargets] = useState([])
   const [isRequesting, setIsRequesting] = useState(false)
   const [requestError, setRequestError] = useState('')
+  const isEditMode = location.pathname === '/interest/other'
+
+  useEffect(() => {
+    let isActive = true
+
+    async function loadSelectedTargets() {
+      if (!isEditMode) return
+
+      try {
+        const data = await getSelectedInterestTargets(accessToken)
+        if (!isActive) return
+        const targets = data?.items ?? []
+        setAllSelectedTargets(targets)
+        setTopics(
+          targets
+            .filter((target) => target.interestType === config.label)
+            .map((target) => ({
+              ...target,
+              id: target.interestTargetId,
+              title: target.title,
+              description: target.genre || '선택한 관심사',
+              imageSrc: target.imageUrl,
+              registered: true,
+            })),
+        )
+      } catch {
+        if (isActive) setRequestError('선택한 관심사를 불러오지 못했습니다.')
+      }
+    }
+
+    loadSelectedTargets()
+    return () => {
+      isActive = false
+    }
+  }, [accessToken, config.label, isEditMode])
 
   const handleRequestTopicInfo = async (event) => {
     event.preventDefault()
@@ -302,12 +348,43 @@ function OtherInterestDetailPage() {
     }
   }
 
-  const moveToHome = () => navigate('/home')
+  const moveToHome = async () => {
+    if (!isEditMode) {
+      navigate('/home')
+      return
+    }
+
+    const interestIds = [
+      ...allSelectedTargets.filter(
+        (target) => target.interestType !== config.label,
+      ),
+      ...topics,
+    ]
+      .map((target) => target.interestId)
+      .filter(Boolean)
+
+    if (interestIds.length === 0) {
+      setRequestError('관심사는 최소 1개 이상 선택해야 합니다.')
+      return
+    }
+
+    setIsRequesting(true)
+    setRequestError('')
+    try {
+      await syncSelectedInterestTargets(accessToken, interestIds)
+      navigate('/interest')
+    } catch (error) {
+      setRequestError(error.message)
+      setIsRequesting(false)
+    }
+  }
+
+  const handleCancel = () => navigate(isEditMode ? '/interest' : '/home')
 
   return (
     <Page>
       <TopBar>
-        <SkipButton onClick={moveToHome} type="button">
+        <SkipButton onClick={handleCancel} type="button">
           건너뛰기 <span aria-hidden="true">›</span>
         </SkipButton>
       </TopBar>

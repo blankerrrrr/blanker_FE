@@ -72,7 +72,15 @@ function PostCard({ post }) {
   return (
     <Article $size={post.size}>
       <CardLink aria-label={`${post.title} 게시글 보기`} to={`/posts/${post.id}`}>
-        <Image alt="" src={post.image} />
+        {post.image && (
+          <Image
+            alt=""
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+            src={post.image}
+          />
+        )}
         <Shade />
         <Copy>
           <Title $size={post.size}>{post.title}</Title>

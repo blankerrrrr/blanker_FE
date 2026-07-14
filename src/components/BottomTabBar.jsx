@@ -1,6 +1,6 @@
-import { NavLink } from "react-router-dom";
-import styled from "styled-components";
-import Icon from "./Icon.jsx";
+import { NavLink } from 'react-router-dom'
+import styled from 'styled-components'
+import Icon from './Icon.jsx'
 
 const StyledTabBar = styled.nav`
   position: fixed;
@@ -13,11 +13,11 @@ const StyledTabBar = styled.nav`
   align-items: center;
   justify-content: space-around;
   padding: 8px 12px;
-  border-radius: 30px;
+  border-radius: 32px;
   background: #fff;
   box-shadow: 0 2px 10px rgb(0 0 0 / 8%);
   transform: translateX(-50%);
-`;
+`
 
 const StyledTabLink = styled(NavLink)`
   display: inline-flex;
@@ -29,7 +29,7 @@ const StyledTabLink = styled(NavLink)`
   color: #a1a1a1;
   text-decoration: none;
 
-  &[aria-current="page"] {
+  &[aria-current='page'] {
     color: #000;
   }
 
@@ -37,16 +37,17 @@ const StyledTabLink = styled(NavLink)`
     outline: 2px solid #333;
     outline-offset: 2px;
   }
-`;
+`
 
 const defaultTabs = [
-  { to: "/home", icon: "home", label: "홈" },
-  { to: "/search", icon: "search", label: "검색" },
-  { to: "/interest", icon: "id-card", label: "프로필 카드" },
-  { to: "/profile", icon: "user", label: "프로필" },
-];
+  { to: '/home', icon: 'home', label: '홈' },
+  { to: '/search', icon: 'search', label: '검색' },
+  { to: '/blank', icon: 'blank', label: 'Blank' },
+  { to: '/interest', icon: 'id-card', label: '관심사' },
+  { to: '/profile', icon: 'user', label: '프로필' },
+]
 
-function BottomTabBar({ tabs = defaultTabs, className = "" }) {
+function BottomTabBar({ tabs = defaultTabs, className = '' }) {
   return (
     <StyledTabBar aria-label="주요 메뉴" className={className}>
       {tabs.map((tab) => (
@@ -55,7 +56,7 @@ function BottomTabBar({ tabs = defaultTabs, className = "" }) {
         </StyledTabLink>
       ))}
     </StyledTabBar>
-  );
+  )
 }
 
-export default BottomTabBar;
+export default BottomTabBar

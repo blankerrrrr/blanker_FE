@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import {
   getInterestItems,
-  getInterestTargetTitles,
+  getSelectedInterestTypes,
 } from '../api/interestsApi.js'
-import landscapeImage from '../assets/sample-landscape.svg'
 import { useAuth } from '../auth/useAuth.js'
 import BottomTabBar from '../components/BottomTabBar.jsx'
 import CategoryItem from '../components/CategoryItem.jsx'
 import HomeHeader from '../components/HomeHeader.jsx'
 import PostFeed from '../components/PostFeed.jsx'
-import { categories } from '../data/posts.js'
 
 const Page = styled.main`
   width: min(100%, 402px);
@@ -59,19 +57,14 @@ function toPost(item, index) {
     id: item.interestItemId,
     title: item.title,
     description: item.summary,
-    image: landscapeImage,
+    image: item.imageUrl,
     size: cardSizes[index % cardSizes.length],
   }
 }
 
 function HomePage() {
   const { accessToken } = useAuth()
-  const [filters, setFilters] = useState(() =>
-    categories.map((title, index) => ({
-      interestTargetId: index === 0 ? 'all' : `fallback-${index}`,
-      title,
-    })),
-  )
+  const [filters, setFilters] = useState([{ name: '전체' }])
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [feedPosts, setFeedPosts] = useState([])
   const [feedState, setFeedState] = useState('loading')
@@ -83,14 +76,9 @@ function HomePage() {
       if (!accessToken) return
 
       try {
-        const data = await getInterestTargetTitles(accessToken)
-        const targetFilters = data?.items ?? []
-        if (isActive && targetFilters.length > 0) {
-          setFilters([
-            { interestTargetId: 'all', title: categories[0] },
-            ...targetFilters,
-          ])
-        }
+        const data = await getSelectedInterestTypes(accessToken)
+        const selectedTypes = data?.items ?? []
+        if (isActive) setFilters([{ name: '전체' }, ...selectedTypes])
       } catch {
         // Keep the fallback filters while the API is unavailable.
       }
@@ -115,7 +103,9 @@ function HomePage() {
 
       try {
         const options = { page: 1, size: 20 }
-        if (selectedCategory !== 'all') options.targetId = selectedCategory
+        if (selectedCategory !== 'all') {
+          options.interestType = selectedCategory
+        }
 
         const data = await getInterestItems(accessToken, options)
         if (!isActive) return
@@ -143,11 +133,16 @@ function HomePage() {
         <CategoryList aria-label="카테고리">
           {filters.map((category) => (
             <CategoryItem
-              key={category.interestTargetId}
-              onClick={() => setSelectedCategory(category.interestTargetId)}
-              selected={selectedCategory === category.interestTargetId}
+              key={category.name}
+              onClick={() =>
+                setSelectedCategory(category.name === '전체' ? 'all' : category.name)
+              }
+              selected={
+                selectedCategory ===
+                (category.name === '전체' ? 'all' : category.name)
+              }
             >
-              {category.title}
+              {category.name}
             </CategoryItem>
           ))}
         </CategoryList>

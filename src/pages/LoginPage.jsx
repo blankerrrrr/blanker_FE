@@ -156,7 +156,7 @@ function LoginPage() {
     } catch (requestError) {
       setError(
         errorMessages[requestError.status] ??
-          "로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+          "로그인 실패. 잠시 후 다시 시도해 주세요.",
       );
     } finally {
       setIsSubmitting(false);

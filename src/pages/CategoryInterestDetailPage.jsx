@@ -1,12 +1,18 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
-import { createInterestTarget } from "../api/interestsApi.js";
+import {
+  createInterestTarget,
+  getSelectedInterestTargets,
+  syncSelectedInterestTargets,
+} from "../api/interestsApi.js";
 import logo from "../assets/logo.svg";
 import { useAuth } from "../auth/useAuth.js";
 import Button from "../components/Button.jsx";
 import CategoryTypeButton from "../components/CategoryTypeButton.jsx";
 import { getInterestCategoryConfig } from "../data/interestOnboarding.js";
+import { getInterestTypeImage } from "../data/interestTypeImage.js";
+import { useInterestTypes } from "../hooks/useInterestTypes.js";
 
 const Page = styled.main`
   display: flex;
@@ -14,7 +20,7 @@ const Page = styled.main`
   min-height: 100svh;
   flex-direction: column;
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 30px 20px 112px;
   background: #fff;
 `;
 
@@ -228,20 +234,61 @@ const RegisteredBadge = styled.span`
 `;
 
 const NextButton = styled(Button)`
-  margin-top: 10px;
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 30;
+  width: min(calc(100% - 40px), 362px);
+  transform: translateX(-50%);
 `;
 
 function CategoryInterestDetailPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { categoryId = "other" } = useParams();
   const { accessToken } = useAuth();
+  const { items: interestTypes } = useInterestTypes();
   const config = getInterestCategoryConfig(categoryId);
+  const heroImageUrl = getInterestTypeImage(interestTypes, categoryId);
+  const isEditMode = location.pathname.startsWith("/interest/");
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [sensitivity, setSensitivity] = useState(50);
   const [query, setQuery] = useState("");
   const [createdTargets, setCreatedTargets] = useState([]);
+  const [allSelectedTargets, setAllSelectedTargets] = useState([]);
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestError, setRequestError] = useState("");
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadSelectedTargets() {
+      if (!isEditMode) return;
+
+      try {
+        const data = await getSelectedInterestTargets(accessToken);
+        if (!isActive) return;
+        const targets = data?.items ?? [];
+        setAllSelectedTargets(targets);
+        setCreatedTargets(
+          targets
+            .filter((target) => target.interestType === config.label)
+            .map((target) => ({
+              ...target,
+              name: target.title,
+              keywords: target.genre ? [target.genre] : [],
+            })),
+        );
+      } catch {
+        if (isActive) setRequestError("선택한 관심사를 불러오지 못했습니다.");
+      }
+    }
+
+    loadSelectedTargets();
+    return () => {
+      isActive = false;
+    };
+  }, [accessToken, config.label, isEditMode]);
 
   const toggleType = (type) => {
     setSelectedTypes((current) =>
@@ -274,14 +321,39 @@ function CategoryInterestDetailPage() {
     }
   };
 
-  const handleNext = () => {
-    if (createdTargets.length > 0) navigate("/home");
+  const handleNext = async () => {
+    if (!isEditMode) {
+      if (createdTargets.length > 0) navigate("/home");
+      return;
+    }
+
+    const otherTargets = allSelectedTargets.filter(
+      (target) => target.interestType !== config.label,
+    );
+    const interestIds = [...otherTargets, ...createdTargets]
+      .map((target) => target.interestId)
+      .filter(Boolean);
+
+    if (interestIds.length === 0) {
+      setRequestError("관심사는 최소 1개 이상 선택해야 합니다.");
+      return;
+    }
+
+    setIsRequesting(true);
+    setRequestError("");
+    try {
+      await syncSelectedInterestTargets(accessToken, interestIds);
+      navigate("/interest");
+    } catch (error) {
+      setRequestError(error.message);
+      setIsRequesting(false);
+    }
   };
 
   return (
     <Page>
       <TopBar>
-        <SkipButton onClick={() => navigate("/home")} type="button">
+        <SkipButton onClick={() => navigate(isEditMode ? "/interest" : "/home")} type="button">
           건너뛰기 <span aria-hidden="true">›</span>
         </SkipButton>
       </TopBar>
@@ -289,13 +361,16 @@ function CategoryInterestDetailPage() {
       <Description>관심사를 선택해주세요!</Description>
 
       <Hero>
-        {config.heroImageSrc && (
+        {heroImageUrl && (
           <>
-            <HeroImage alt="" aria-hidden="true" src={config.heroImageSrc} />
+            <HeroImage
+              alt={`${config.label} 대표 이미지`}
+              src={heroImageUrl}
+            />
             <Overlay />
           </>
         )}
-        <HeroTitle $hasImage={Boolean(config.heroImageSrc)}>
+        <HeroTitle $hasImage={Boolean(heroImageUrl)}>
           {config.label}
         </HeroTitle>
       </Hero>
@@ -386,7 +461,7 @@ function CategoryInterestDetailPage() {
       </InterestList>
 
       <NextButton
-        disabled={createdTargets.length === 0}
+        disabled={!isEditMode && createdTargets.length === 0}
         onClick={handleNext}
         variant="light"
       >

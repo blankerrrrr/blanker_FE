@@ -4,8 +4,8 @@ import { getVisitHistory } from '../api/interestsApi.js'
 import { useAuth } from '../auth/useAuth.js'
 import BottomTabBar from '../components/BottomTabBar.jsx'
 import HomeHeader from '../components/HomeHeader.jsx'
-import Icon from '../components/Icon.jsx'
-import { groupVisitHistory } from '../data/visitHistory.js'
+import LinkCard from '../components/LinkCard.jsx'
+import { normalizeVisitHistory } from '../data/visitHistory.js'
 
 const Page = styled.main`
   width: min(100%, 402px);
@@ -50,33 +50,6 @@ const Record = styled.li`
   min-width: 0;
 `
 
-const RecordLink = styled.a`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px;
-  gap: 8px;
-  min-height: 64px;
-  align-items: center;
-  padding: 12px;
-  border-radius: 14px;
-  color: #111;
-  background: #f7f7f7;
-  text-decoration: none;
-
-  &:focus-visible {
-    outline: 2px solid #111;
-    outline-offset: 2px;
-  }
-`
-
-const Url = styled.span`
-  display: block;
-  overflow: hidden;
-  color: #1595e7;
-  font-size: 11px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`
 
 const Status = styled.div`
   display: grid;
@@ -84,6 +57,15 @@ const Status = styled.div`
   place-items: center;
   color: #777;
   font-size: 14px;
+  text-align: center;
+`
+
+const GroupEmptyState = styled.p`
+  padding: 20px 12px;
+  border-radius: 14px;
+  color: #888;
+  background: #f7f7f7;
+  font-size: 12px;
   text-align: center;
 `
 
@@ -105,7 +87,7 @@ function VisitHistoryPage() {
 
       try {
         const data = await getVisitHistory(accessToken)
-        if (isActive) setGroups(groupVisitHistory(data?.items ?? []))
+        if (isActive) setGroups(normalizeVisitHistory(data))
       } catch {
         if (isActive) setError('방문 기록을 불러오지 못했습니다.')
       } finally {
@@ -135,21 +117,23 @@ function VisitHistoryPage() {
           {groups.map((group) => (
             <Group key={group.date}>
               <DateTitle>{group.date}</DateTitle>
-              <RecordList>
-                {group.items.map((record) => (
-                  <Record key={record.interestItemId} role="listitem">
-                    <RecordLink
-                      aria-label={`${record.sourceUrl} 방문 페이지 열기`}
-                      href={record.sourceUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      <Url>{record.sourceUrl}</Url>
-                      <Icon name="arrow-right" size={20} />
-                    </RecordLink>
-                  </Record>
-                ))}
-              </RecordList>
+              {group.items.length ? (
+                <RecordList>
+                  {group.items.map((record) => (
+                    <Record key={record.interestItemId} role="listitem">
+                      <LinkCard
+                        ariaLabel={`${record.sourceUrl} 방문 페이지 열기`}
+                        summary={record.summary}
+                        url={record.sourceUrl}
+                      />
+                    </Record>
+                  ))}
+                </RecordList>
+              ) : (
+                <GroupEmptyState>
+                  이 날짜의 방문 기록이 없습니다.
+                </GroupEmptyState>
+              )}
             </Group>
           ))}
           </div>

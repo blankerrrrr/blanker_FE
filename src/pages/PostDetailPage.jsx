@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { getInterestItem } from '../api/interestsApi.js'
-import landscapeImage from '../assets/sample-landscape.svg'
 import { useAuth } from '../auth/useAuth.js'
 import BackButton from '../components/BackButton.jsx'
 import Icon from '../components/Icon.jsx'
@@ -239,11 +238,13 @@ function PostDetailPage() {
           </IconButton>
         </MetaRow>
       </Header>
-      <HeroImage
-        alt={`${item.title} 기본 이미지`}
-        data-layout="post-hero"
-        src={landscapeImage}
-      />
+      {item.imageUrl && (
+        <HeroImage
+          alt={`${item.title} 대표 이미지`}
+          data-layout="post-hero"
+          src={item.imageUrl}
+        />
+      )}
       <Content>
         <Tags>
           {(item.relatedTopics ?? []).map((topic) => (

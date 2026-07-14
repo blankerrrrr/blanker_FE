@@ -13,7 +13,7 @@ const Page = styled.main`
   min-height: 100svh;
   flex-direction: column;
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 30px 20px 112px;
   background: #fff;
 `
 
@@ -75,7 +75,12 @@ const RetryButton = styled.button`
 `
 
 const NextButton = styled(Button)`
-  margin-top: 10px;
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 30;
+  width: min(calc(100% - 40px), 362px);
+  transform: translateX(-50%);
 `
 
 function InterestsOnboardingPage() {

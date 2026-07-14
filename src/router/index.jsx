@@ -1,4 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
+import RequireAuth from '../components/RequireAuth.jsx'
+import BlankPage from '../pages/BlankPage.jsx'
 import HomePage from '../pages/HomePage.jsx'
 import InterestsOnboardingPage from '../pages/InterestsOnboardingPage.jsx'
 import InterestPage from '../pages/InterestPage.jsx'
@@ -27,15 +29,15 @@ export const router = createBrowserRouter([
   },
   {
     path: '/onboarding/interests',
-    element: <InterestsOnboardingPage />,
+    element: <RequireAuth><InterestsOnboardingPage /></RequireAuth>,
   },
   {
     path: '/onboarding/interests/other',
-    element: <OtherInterestDetailPage />,
+    element: <RequireAuth><OtherInterestDetailPage /></RequireAuth>,
   },
   {
     path: '/onboarding/interests/:categoryId',
-    element: <CategoryInterestDetailPage />,
+    element: <RequireAuth><CategoryInterestDetailPage /></RequireAuth>,
   },
   {
     path: '/login',
@@ -51,31 +53,43 @@ export const router = createBrowserRouter([
   },
   {
     path: '/home',
-    element: <HomePage />,
+    element: <RequireAuth><HomePage /></RequireAuth>,
   },
   {
     path: '/interest',
-    element: <InterestPage />,
+    element: <RequireAuth><InterestPage /></RequireAuth>,
+  },
+  {
+    path: '/interest/other',
+    element: <RequireAuth><OtherInterestDetailPage /></RequireAuth>,
+  },
+  {
+    path: '/interest/:categoryId',
+    element: <RequireAuth><CategoryInterestDetailPage /></RequireAuth>,
   },
   {
     path: '/posts/:postId',
-    element: <PostDetailPage />,
+    element: <RequireAuth><PostDetailPage /></RequireAuth>,
   },
   {
     path: '/search',
-    element: <SearchPage />,
+    element: <RequireAuth><SearchPage /></RequireAuth>,
+  },
+  {
+    path: '/blank',
+    element: <RequireAuth><BlankPage /></RequireAuth>,
   },
   {
     path: '/profile',
-    element: <ProfilePage />,
+    element: <RequireAuth><ProfilePage /></RequireAuth>,
   },
   {
     path: '/profile/history',
-    element: <VisitHistoryPage />,
+    element: <RequireAuth><VisitHistoryPage /></RequireAuth>,
   },
   {
     path: '/settings',
-    element: <SettingsPage />,
+    element: <RequireAuth><SettingsPage /></RequireAuth>,
   },
   {
     path: '*',
