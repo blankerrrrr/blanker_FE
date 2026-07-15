@@ -1,5 +1,8 @@
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
+import { getSelectedInterestTargets } from '../api/interestsApi.js'
+import { useAuth } from '../auth/useAuth.js'
 import BottomTabBar from '../components/BottomTabBar.jsx'
 import CategoryButton from '../components/CategoryButton.jsx'
 import HomeHeader from '../components/HomeHeader.jsx'
@@ -34,27 +37,83 @@ const CategoryGrid = styled.div`
 `
 function InterestPage() {
   const navigate = useNavigate()
+  const { accessToken } = useAuth()
   const { error, isLoading, items, retry } = useInterestTypes()
+  const [selectedTypes, setSelectedTypes] = useState([])
+  const [selectedError, setSelectedError] = useState('')
+  const [isSelectedLoading, setIsSelectedLoading] = useState(true)
+  const [requestCount, setRequestCount] = useState(0)
+
+  const retryAll = useCallback(() => {
+    retry()
+    setRequestCount((count) => count + 1)
+  }, [retry])
+
+  useEffect(() => {
+    let isActive = true
+
+    async function loadSelectedTypes() {
+      if (!accessToken) {
+        if (isActive) {
+          setSelectedError('로그인이 필요합니다.')
+          setIsSelectedLoading(false)
+        }
+        return
+      }
+
+      setSelectedError('')
+      setIsSelectedLoading(true)
+
+      try {
+        const data = await getSelectedInterestTargets(accessToken)
+        if (!isActive) return
+
+        setSelectedTypes([
+          ...new Set(
+            (data?.items ?? [])
+              .map((target) => target.interestType)
+              .filter(Boolean),
+          ),
+        ])
+      } catch {
+        if (isActive) {
+          setSelectedTypes([])
+          setSelectedError('선택한 관심사를 불러오지 못했습니다.')
+        }
+      } finally {
+        if (isActive) setIsSelectedLoading(false)
+      }
+    }
+
+    loadSelectedTypes()
+    return () => {
+      isActive = false
+    }
+  }, [accessToken, requestCount])
+
+  const pageError = error || selectedError
+  const pageLoading = isLoading || isSelectedLoading
 
   return (
     <Page>
       <FixedHeader><HomeHeader /></FixedHeader>
       <Content>
         <Description>수정할 관심사 카테고리를 선택해주세요.</Description>
-        {isLoading && <RequestState message="관심사 목록을 불러오는 중입니다." />}
-        {!isLoading && error && (
+        {pageLoading && <RequestState message="관심사 목록을 불러오는 중입니다." />}
+        {!pageLoading && pageError && (
           <RequestState
-            message={error}
-            onRetry={retry}
+            message={pageError}
+            onRetry={accessToken ? retryAll : undefined}
           />
         )}
-        {!isLoading && !error && (
+        {!pageLoading && !pageError && (
           <CategoryGrid aria-label="관심사 카테고리">
             {items.map((category) => (
               <CategoryButton
                 key={category.id}
                 label={category.name}
                 onClick={() => navigate(`/interest/${category.id}`)}
+                selected={selectedTypes.includes(category.name)}
               >
                 {category.imageUrl && <img alt="" src={category.imageUrl} />}
               </CategoryButton>

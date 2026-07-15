@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
-import { getInterests, selectInterests } from '../api/interestsApi.js'
+import {
+  getInterests,
+  getSelectedInterestTargets,
+  selectInterests,
+  syncSelectedInterestTargets,
+} from '../api/interestsApi.js'
 import logo from '../assets/logo.svg'
 import { useAuth } from '../auth/useAuth.js'
 import Button from '../components/Button.jsx'
@@ -189,6 +194,11 @@ function CategoryInterestDetailPage() {
   const [keyword, setKeyword] = useState('')
   const [items, setItems] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
+  const [allSelectedTargets, setAllSelectedTargets] = useState([])
+  const [selectionState, setSelectionState] = useState(
+    isEditMode ? 'loading' : 'success',
+  )
+  const [selectionError, setSelectionError] = useState('')
   const [pageState, setPageState] = useState('loading')
   const [error, setError] = useState('')
   const [errorSource, setErrorSource] = useState('')
@@ -202,10 +212,71 @@ function CategoryInterestDetailPage() {
     setKeyword('')
     setItems([])
     setSelectedIds([])
+    setAllSelectedTargets([])
+    setSelectionState(isEditMode ? 'loading' : 'success')
+    setSelectionError('')
     setError('')
     setErrorSource('')
     setIsSubmitting(false)
-  }, [categoryId])
+  }, [categoryId, isEditMode])
+
+  useEffect(() => {
+    let isActive = true
+
+    async function loadSelectedInterests() {
+      if (!isEditMode) {
+        setSelectionState('success')
+        return
+      }
+
+      if (!accessToken) {
+        setSelectionState('auth')
+        return
+      }
+
+      setSelectionState('loading')
+      setSelectionError('')
+
+      try {
+        const data = await getSelectedInterestTargets(accessToken)
+        if (!isActive) return
+
+        const targets = data?.items ?? []
+        const currentTargets = targets.filter(
+          (target) => target.interestType === config.label,
+        )
+
+        setAllSelectedTargets(targets)
+        setSelectedIds(
+          currentTargets
+            .map((target) => target.interestId)
+            .filter(Boolean),
+        )
+        setSelectedGenres([
+          ...new Set(
+            currentTargets
+              .map((target) => target.genre)
+              .filter((genre) => genre && genre !== '전체'),
+          ),
+        ])
+        setSelectionState('success')
+      } catch (requestError) {
+        if (isActive) {
+          setAllSelectedTargets([])
+          setSelectedIds([])
+          setSelectionError(
+            requestError.message || '선택한 관심사를 불러오지 못했습니다.',
+          )
+          setSelectionState('error')
+        }
+      }
+    }
+
+    loadSelectedInterests()
+    return () => {
+      isActive = false
+    }
+  }, [accessToken, config.label, isEditMode, reloadKey])
 
   useEffect(() => {
     let isActive = true
@@ -260,13 +331,34 @@ function CategoryInterestDetailPage() {
   }
 
   const handleSubmit = async () => {
-    if (isSubmitting) return
+    if (isSubmitting || (isEditMode && selectionState !== 'success')) return
     setIsSubmitting(true)
     setError('')
     setErrorSource('')
 
     try {
-      if (selectedIds.length > 0) {
+      if (isEditMode) {
+        const preservedIds = allSelectedTargets
+          .filter((target) => target.interestType !== config.label)
+          .map((target) => target.interestId)
+          .filter(Boolean)
+        const nextSelectedIds = [
+          ...new Set([...preservedIds, ...selectedIds]),
+        ]
+
+        if (nextSelectedIds.length === 0) {
+          setError('관심사는 최소 1개 이상 선택해야 합니다.')
+          setErrorSource('validation')
+          setIsSubmitting(false)
+          return
+        }
+
+        const data = await syncSelectedInterestTargets(
+          accessToken,
+          nextSelectedIds,
+        )
+        setAllSelectedTargets(data?.items ?? [])
+      } else if (selectedIds.length > 0) {
         await selectInterests(accessToken, selectedIds)
       }
       if (nextCategoryId) {
@@ -317,35 +409,37 @@ function CategoryInterestDetailPage() {
         <HeroTitle $hasImage={Boolean(heroImageUrl)}>{config.label}</HeroTitle>
       </Hero>
 
-      <Section>
-        <SectionLabel>장르를 선택해주세요.</SectionLabel>
-        <TypeScroller aria-label={`${config.label} 장르`}>
-          {['전체', ...config.types].map((type) => (
-            <CategoryTypeButton
-              key={type}
-              onClick={() => {
-                if (type === '전체') {
-                  setSelectedGenres([])
-                  return
-                }
+      {config.types.length > 0 && (
+        <Section>
+          <SectionLabel>장르를 선택해주세요.</SectionLabel>
+          <TypeScroller aria-label={`${config.label} 장르`}>
+            {['전체', ...config.types].map((type) => (
+              <CategoryTypeButton
+                key={type}
+                onClick={() => {
+                  if (type === '전체') {
+                    setSelectedGenres([])
+                    return
+                  }
 
-                setSelectedGenres((current) =>
-                  current.includes(type)
-                    ? current.filter((genre) => genre !== type)
-                    : [...current, type],
-                )
-              }}
-              selected={
-                type === '전체'
-                  ? selectedGenres.length === 0
-                  : selectedGenres.includes(type)
-              }
-            >
-              {type}
-            </CategoryTypeButton>
-          ))}
-        </TypeScroller>
-      </Section>
+                  setSelectedGenres((current) =>
+                    current.includes(type)
+                      ? current.filter((genre) => genre !== type)
+                      : [...current, type],
+                  )
+                }}
+                selected={
+                  type === '전체'
+                    ? selectedGenres.length === 0
+                    : selectedGenres.includes(type)
+                }
+              >
+                {type}
+              </CategoryTypeButton>
+            ))}
+          </TypeScroller>
+        </Section>
+      )}
 
       <Section>
         <SectionLabel as="label" htmlFor="interest-sensitivity">
@@ -375,18 +469,28 @@ function CategoryInterestDetailPage() {
         />
       </Section>
 
-      {pageState === 'loading' && <RequestState message="관심사 목록을 불러오는 중입니다." />}
-      {pageState === 'auth' && <RequestState message="로그인이 필요합니다." />}
-      {pageState === 'error' && (
+      {(pageState === 'loading' || selectionState === 'loading') && (
+        <RequestState message="관심사 목록을 불러오는 중입니다." />
+      )}
+      {(pageState === 'auth' || selectionState === 'auth') && (
+        <RequestState message="로그인이 필요합니다." />
+      )}
+      {selectionState === 'error' && (
+        <RequestState
+          message={selectionError}
+          onRetry={() => setReloadKey((key) => key + 1)}
+        />
+      )}
+      {selectionState === 'success' && pageState === 'error' && (
         <RequestState
           message={error}
           onRetry={() => setReloadKey((key) => key + 1)}
         />
       )}
-      {pageState === 'success' && items.length === 0 && (
+      {selectionState === 'success' && pageState === 'success' && items.length === 0 && (
         <RequestState message="조건에 맞는 관심사가 없습니다." />
       )}
-      {pageState === 'success' && items.length > 0 && (
+      {selectionState === 'success' && pageState === 'success' && items.length > 0 && (
         <InterestList aria-label={`${config.label} 관심사 목록`}>
           {items.map((item) => (
             <InterestTargetCard
@@ -409,7 +513,7 @@ function CategoryInterestDetailPage() {
       )}
 
       <NextButton
-        disabled={isSubmitting}
+        disabled={isSubmitting || (isEditMode && selectionState !== 'success')}
         onClick={handleSubmit}
         variant="light"
       >

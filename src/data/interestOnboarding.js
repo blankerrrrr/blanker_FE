@@ -43,7 +43,7 @@ export const interestCategoryConfigs = {
   },
   other: {
     label: '기타',
-    types: ['공연', '전시', '음악', '도서', '영상'],
+    types: [],
     searchPlaceholder: '관심 있는 주제를 입력해 주세요.',
     recommendations: [],
   },
