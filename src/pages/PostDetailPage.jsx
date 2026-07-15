@@ -157,6 +157,26 @@ const MemoStatus = styled.span`
   font-size: 11px;
 `
 
+const MemoDisplay = styled.button`
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  color: #252525;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  cursor: text;
+
+  &:focus-visible {
+    outline: 1px solid #c9c9c9;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+`
+
 const MemoSaveButton = styled(Button)`
   position: absolute;
   right: 8px;
@@ -232,15 +252,19 @@ function PostDetailPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [memo, setMemo] = useState('')
   const [memoStatus, setMemoStatus] = useState('')
+  const [isMemoEditing, setIsMemoEditing] = useState(true)
   const memoInputRef = useRef(null)
 
   useEffect(() => {
     const storageKey = `blanker:content-memo:${postId}`
 
     try {
-      setMemo(window.localStorage.getItem(storageKey) ?? '')
+      const savedMemo = window.localStorage.getItem(storageKey) ?? ''
+      setMemo(savedMemo)
+      setIsMemoEditing(!savedMemo)
     } catch {
       setMemo('')
+      setIsMemoEditing(true)
     }
     setMemoStatus('')
   }, [postId])
@@ -251,7 +275,17 @@ function PostDetailPage() {
 
     input.style.height = 'auto'
     input.style.height = `${Math.max(48, input.scrollHeight)}px`
-  }, [memo, pageState])
+  }, [isMemoEditing, memo, pageState])
+
+  useEffect(() => {
+    if (memoStatus !== '저장되었습니다.') return undefined
+
+    const timerId = window.setTimeout(() => {
+      setMemoStatus('')
+    }, 1800)
+
+    return () => window.clearTimeout(timerId)
+  }, [memoStatus])
 
   useEffect(() => {
     let isActive = true
@@ -330,6 +364,7 @@ function PostDetailPage() {
     try {
       window.localStorage.setItem(`blanker:content-memo:${postId}`, memo)
       setMemoStatus('저장되었습니다.')
+      setIsMemoEditing(!memo.trim())
     } catch {
       setMemoStatus('메모를 저장하지 못했습니다.')
     }
@@ -372,21 +407,34 @@ function PostDetailPage() {
         <Section>
           <SectionTitle>내 메모</SectionTitle>
           <MemoForm onSubmit={handleMemoSave}>
-            <MemoField>
-              <MemoInput
-                aria-label={`${item.title} 메모`}
-                onChange={(event) => {
-                  setMemo(event.target.value)
-                  setMemoStatus('')
+            {isMemoEditing ? (
+              <MemoField>
+                <MemoInput
+                  aria-label={`${item.title} 메모`}
+                  onChange={(event) => {
+                    setMemo(event.target.value)
+                    setMemoStatus('')
+                  }}
+                  placeholder="이 콘텐츠에 대한 메모를 입력해주세요."
+                  ref={memoInputRef}
+                  value={memo}
+                />
+                <MemoSaveButton type="submit" variant="dark">
+                  저장
+                </MemoSaveButton>
+              </MemoField>
+            ) : (
+              <MemoDisplay
+                aria-label={`${item.title} 메모 수정`}
+                onClick={() => {
+                  setIsMemoEditing(true)
+                  window.requestAnimationFrame(() => memoInputRef.current?.focus())
                 }}
-                placeholder="이 콘텐츠에 대한 메모를 입력해주세요."
-                ref={memoInputRef}
-                value={memo}
-              />
-              <MemoSaveButton type="submit" variant="dark">
-                저장
-              </MemoSaveButton>
-            </MemoField>
+                type="button"
+              >
+                {memo}
+              </MemoDisplay>
+            )}
             <MemoStatus aria-live="polite">{memoStatus}</MemoStatus>
           </MemoForm>
         </Section>
