@@ -358,12 +358,15 @@ function CategoryInterestDetailPage() {
           nextSelectedIds,
         )
         setAllSelectedTargets(data?.items ?? [])
-      } else if (selectedIds.length > 0) {
+        navigate('/interest', { replace: true })
+        return
+      }
+
+      if (selectedIds.length > 0) {
         await selectInterests(accessToken, selectedIds)
       }
       if (nextCategoryId) {
-        const routePrefix = isEditMode ? '/interest' : '/onboarding/interests'
-        navigate(`${routePrefix}/${nextCategoryId}`, {
+        navigate(`/onboarding/interests/${nextCategoryId}`, {
           state: {
             categoryFlow: {
               categoryIds,
@@ -373,11 +376,9 @@ function CategoryInterestDetailPage() {
         })
         return
       }
-      navigate(isEditMode ? '/interest' : '/login', {
-        replace: !isEditMode,
-        state: isEditMode
-          ? undefined
-          : { message: '관심사 설정이 완료되었습니다. 로그인해 주세요.' },
+      navigate('/login', {
+        replace: true,
+        state: { message: '관심사 설정이 완료되었습니다. 로그인해 주세요.' },
       })
     } catch (requestError) {
       setError(requestError.message || '관심사를 저장하지 못했습니다.')
