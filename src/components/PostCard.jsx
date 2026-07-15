@@ -56,16 +56,38 @@ const Copy = styled.div`
 `
 
 const Title = styled.h2`
+  display: -webkit-box;
   margin: 0 0 3px;
-  font-size: ${({ $size }) => ($size === 'hero' ? '32px' : '20px')};
-  line-height: 1;
+  overflow: hidden;
+  font-size: ${({ $length, $size }) => {
+    if ($size === 'hero') {
+      if ($length > 30) return '22px'
+      if ($length > 18) return '26px'
+      return '32px'
+    }
+
+    if ($length > 24) return '14px'
+    if ($length > 14) return '16px'
+    return '20px'
+  }};
+  line-height: 1.12;
   text-transform: uppercase;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 `
 
 const Description = styled.p`
+  display: -webkit-box;
   margin: 0;
+  overflow: hidden;
   font-size: 11px;
   line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 `
 
 function PostCard({ post }) {
@@ -83,7 +105,9 @@ function PostCard({ post }) {
         )}
         <Shade />
         <Copy>
-          <Title $size={post.size}>{post.title}</Title>
+          <Title $length={post.title.length} $size={post.size}>
+            {post.title}
+          </Title>
           <Description>{post.description}</Description>
         </Copy>
       </CardLink>
