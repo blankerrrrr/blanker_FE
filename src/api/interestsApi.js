@@ -1,16 +1,5 @@
 import { requestApi } from './apiClient.js'
 
-export async function requestInterestTitleInfo({ categoryId, title }) {
-  const normalizedTitle = title.trim()
-
-  return {
-    id: `${categoryId}-${normalizedTitle.toLocaleLowerCase().replaceAll(' ', '-')}`,
-    title: normalizedTitle,
-    description: `검색 결과로 추가된 관심 작품 "${normalizedTitle}"입니다.`,
-    imageSrc: null,
-  }
-}
-
 function requestInterestsApi(path, options = {}) {
   return requestApi(path, {
     ...options,

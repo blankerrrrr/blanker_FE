@@ -147,7 +147,6 @@ function LinkCard({
           target="_blank"
         >
           <CardCopy summary={summary} url={url} />
-          <DefaultBlur aria-hidden="true" />
           <Arrow>
             <Icon name="arrow-right" size={28} />
           </Arrow>

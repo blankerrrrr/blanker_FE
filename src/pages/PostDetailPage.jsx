@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { getInterestItem } from '../api/interestsApi.js'
 import { useAuth } from '../auth/useAuth.js'
 import BackButton from '../components/BackButton.jsx'
+import Button from '../components/Button.jsx'
 import Icon from '../components/Icon.jsx'
 import RequestState from '../components/RequestState.jsx'
 
@@ -116,6 +117,54 @@ const Paragraph = styled.p`
   line-height: 1.55;
 `
 
+const MemoForm = styled.form`
+  display: grid;
+  gap: 8px;
+`
+
+const MemoInput = styled.textarea`
+  width: 100%;
+  min-height: 112px;
+  padding: 12px 14px;
+  resize: vertical;
+  border: 1px solid #d8d8d8;
+  border-radius: 12px;
+  outline: none;
+  color: #252525;
+  background: #f8f8f8;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+
+  &:focus-visible {
+    border-color: #777;
+    box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+  }
+
+  &::placeholder {
+    color: #888;
+  }
+`
+
+const MemoActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+`
+
+const MemoStatus = styled.span`
+  color: #777;
+  font-size: 11px;
+`
+
+const MemoSaveButton = styled(Button)`
+  width: auto;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+`
+
 const RelatedList = styled.div`
   display: grid;
   gap: 10px;
@@ -172,6 +221,20 @@ function PostDetailPage() {
   const [item, setItem] = useState(null)
   const [pageState, setPageState] = useState('loading')
   const [reloadKey, setReloadKey] = useState(0)
+  const [memo, setMemo] = useState('')
+  const [memoStatus, setMemoStatus] = useState('')
+  const memoInputRef = useRef(null)
+
+  useEffect(() => {
+    const storageKey = `blanker:content-memo:${postId}`
+
+    try {
+      setMemo(window.localStorage.getItem(storageKey) ?? '')
+    } catch {
+      setMemo('')
+    }
+    setMemoStatus('')
+  }, [postId])
 
   useEffect(() => {
     let isActive = true
@@ -244,6 +307,17 @@ function PostDetailPage() {
     await navigator.clipboard?.writeText(shareData.url)
   }
 
+  const handleMemoSave = (event) => {
+    event.preventDefault()
+
+    try {
+      window.localStorage.setItem(`blanker:content-memo:${postId}`, memo)
+      setMemoStatus('저장되었습니다.')
+    } catch {
+      setMemoStatus('메모를 저장하지 못했습니다.')
+    }
+  }
+
   return (
     <Page>
       <Header>
@@ -278,6 +352,27 @@ function PostDetailPage() {
           <SectionTitle>요약</SectionTitle>
           <Paragraph>{item.summary}</Paragraph>
         </Section>
+        <Section>
+          <SectionTitle>내 메모</SectionTitle>
+          <MemoForm onSubmit={handleMemoSave}>
+            <MemoInput
+              aria-label={`${item.title} 메모`}
+              onChange={(event) => {
+                setMemo(event.target.value)
+                setMemoStatus('')
+              }}
+              placeholder="이 콘텐츠에 대한 메모를 입력해주세요."
+              ref={memoInputRef}
+              value={memo}
+            />
+            <MemoActions>
+              <MemoStatus aria-live="polite">{memoStatus}</MemoStatus>
+              <MemoSaveButton type="submit" variant="light">
+                저장
+              </MemoSaveButton>
+            </MemoActions>
+          </MemoForm>
+        </Section>
         {item.sourceUrl && (
           <Section>
             <SectionTitle>원본 링크</SectionTitle>
@@ -299,7 +394,14 @@ function PostDetailPage() {
           </Section>
         )}
       </Content>
-      <EditButton aria-label="게시글 수정" type="button">
+      <EditButton
+        aria-label="메모 작성"
+        onClick={() => {
+          memoInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          memoInputRef.current?.focus({ preventScroll: true })
+        }}
+        type="button"
+      >
         <Icon name="edit" size={22} />
       </EditButton>
     </Page>
