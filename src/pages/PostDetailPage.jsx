@@ -122,13 +122,18 @@ const MemoForm = styled.form`
   gap: 8px;
 `
 
+const MemoField = styled.div`
+  position: relative;
+`
+
 const MemoInput = styled.textarea`
   width: 100%;
-  min-height: 112px;
-  padding: 0;
-  resize: vertical;
-  border: 0;
-  border-radius: 0;
+  min-height: 48px;
+  padding: 10px 72px 44px 12px;
+  overflow: hidden;
+  resize: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
   outline: none;
   color: #252525;
   background: transparent;
@@ -137,8 +142,8 @@ const MemoInput = styled.textarea`
   line-height: 1.55;
 
   &:focus-visible {
-    outline: 1px solid #168bf2;
-    outline-offset: 3px;
+    border-color: #c9c9c9;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 4%);
   }
 
   &::placeholder {
@@ -146,33 +151,42 @@ const MemoInput = styled.textarea`
   }
 `
 
-const MemoActions = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-`
-
 const MemoStatus = styled.span`
+  display: block;
   color: #777;
   font-size: 11px;
 `
 
 const MemoSaveButton = styled(Button)`
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
   width: auto;
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 10px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, filter 160ms ease, box-shadow 160ms ease;
+
+  ${MemoField}:focus-within & {
+    opacity: 1;
+    pointer-events: auto;
+  }
 `
 
 const RelatedList = styled.div`
   display: grid;
+  min-width: 0;
   gap: 10px;
 `
 
 const RelatedLink = styled.a`
   display: grid;
-  grid-template-columns: 1fr auto;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
@@ -180,6 +194,12 @@ const RelatedLink = styled.a`
   color: inherit;
   background: #f4f4f4;
   text-decoration: none;
+`
+
+const LinkCopy = styled.span`
+  display: block;
+  min-width: 0;
+  overflow: hidden;
 `
 
 const LinkUrl = styled.span`
@@ -195,17 +215,6 @@ const LinkUrl = styled.span`
 const LinkTitle = styled.strong`
   display: block;
   font-size: 11px;
-`
-
-const EditButton = styled(IconButton)`
-  position: fixed;
-  right: max(22px, calc((100vw - 402px) / 2 + 22px));
-  bottom: 24px;
-  width: 54px;
-  height: 54px;
-  color: #fff;
-  background: #050505;
-  box-shadow: 0 6px 18px rgb(0 0 0 / 24%);
 `
 
 const EmptyState = styled(Page)`
@@ -235,6 +244,14 @@ function PostDetailPage() {
     }
     setMemoStatus('')
   }, [postId])
+
+  useEffect(() => {
+    const input = memoInputRef.current
+    if (!input) return
+
+    input.style.height = 'auto'
+    input.style.height = `${Math.max(48, input.scrollHeight)}px`
+  }, [memo, pageState])
 
   useEffect(() => {
     let isActive = true
@@ -355,22 +372,22 @@ function PostDetailPage() {
         <Section>
           <SectionTitle>내 메모</SectionTitle>
           <MemoForm onSubmit={handleMemoSave}>
-            <MemoInput
-              aria-label={`${item.title} 메모`}
-              onChange={(event) => {
-                setMemo(event.target.value)
-                setMemoStatus('')
-              }}
-              placeholder="이 콘텐츠에 대한 메모를 입력해주세요."
-              ref={memoInputRef}
-              value={memo}
-            />
-            <MemoActions>
-              <MemoStatus aria-live="polite">{memoStatus}</MemoStatus>
-              <MemoSaveButton type="submit" variant="light">
+            <MemoField>
+              <MemoInput
+                aria-label={`${item.title} 메모`}
+                onChange={(event) => {
+                  setMemo(event.target.value)
+                  setMemoStatus('')
+                }}
+                placeholder="이 콘텐츠에 대한 메모를 입력해주세요."
+                ref={memoInputRef}
+                value={memo}
+              />
+              <MemoSaveButton type="submit" variant="dark">
                 저장
               </MemoSaveButton>
-            </MemoActions>
+            </MemoField>
+            <MemoStatus aria-live="polite">{memoStatus}</MemoStatus>
           </MemoForm>
         </Section>
         {item.sourceUrl && (
@@ -384,26 +401,16 @@ function PostDetailPage() {
                 rel="noreferrer"
                 target="_blank"
               >
-                <span>
+                <LinkCopy>
                   <LinkUrl>{item.sourceUrl}</LinkUrl>
                   <LinkTitle>원문 보기</LinkTitle>
-                </span>
+                </LinkCopy>
                 <Icon name="arrow-right" size={18} />
               </RelatedLink>
             </RelatedList>
           </Section>
         )}
       </Content>
-      <EditButton
-        aria-label="메모 작성"
-        onClick={() => {
-          memoInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          memoInputRef.current?.focus({ preventScroll: true })
-        }}
-        type="button"
-      >
-        <Icon name="edit" size={22} />
-      </EditButton>
     </Page>
   )
 }
