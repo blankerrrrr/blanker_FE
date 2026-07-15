@@ -125,20 +125,20 @@ const MemoForm = styled.form`
 const MemoInput = styled.textarea`
   width: 100%;
   min-height: 112px;
-  padding: 12px 14px;
+  padding: 0;
   resize: vertical;
-  border: 1px solid #d8d8d8;
-  border-radius: 12px;
+  border: 0;
+  border-radius: 0;
   outline: none;
   color: #252525;
-  background: #f8f8f8;
+  background: transparent;
   font: inherit;
   font-size: 12px;
   line-height: 1.55;
 
   &:focus-visible {
-    border-color: #777;
-    box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+    outline: 1px solid #168bf2;
+    outline-offset: 3px;
   }
 
   &::placeholder {

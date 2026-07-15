@@ -354,6 +354,11 @@ function CategoryInterestDetailPage() {
           ...new Set([...preservedIds, ...selectedIds]),
         ]
 
+        if (nextSelectedIds.length === 0) {
+          navigate('/interest', { replace: true })
+          return
+        }
+
         const data = await syncSelectedInterestTargets(
           accessToken,
           nextSelectedIds,
