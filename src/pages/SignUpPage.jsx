@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { signupRequest } from "../api/authApi.js";
 import logo from "../assets/logo.svg";
 import signupBackground from "../assets/signup-bg.svg";
+import { useAuth } from "../auth/useAuth.js";
 import BackButton from "../components/BackButton.jsx";
 import Button from "../components/Button.jsx";
 import Input from "../components/Input.jsx";
@@ -117,6 +118,7 @@ const errorMessages = {
 
 function SignUpPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -160,11 +162,10 @@ function SignUpPage() {
     setIsSubmitting(true);
 
     try {
-      await signupRequest({ email: email.trim(), password });
-      navigate("/login", {
-        replace: true,
-        state: { message: "회원가입이 완료되었습니다." },
-      });
+      const credentials = { email: email.trim(), password };
+      await signupRequest(credentials);
+      await login(credentials);
+      navigate("/onboarding/interests", { replace: true });
     } catch (requestError) {
       setError(
         errorMessages[requestError.status] ??

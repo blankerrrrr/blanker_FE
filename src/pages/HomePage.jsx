@@ -9,6 +9,7 @@ import BottomTabBar from '../components/BottomTabBar.jsx'
 import CategoryItem from '../components/CategoryItem.jsx'
 import HomeHeader from '../components/HomeHeader.jsx'
 import PostFeed from '../components/PostFeed.jsx'
+import RequestState from '../components/RequestState.jsx'
 
 const Page = styled.main`
   width: min(100%, 402px);
@@ -43,13 +44,6 @@ const FeedArea = styled.div`
   padding: 0 20px;
 `
 
-const FeedStatus = styled.p`
-  margin: 48px 0;
-  color: #777;
-  font-size: 14px;
-  text-align: center;
-`
-
 const cardSizes = ['hero', 'tall', 'small', 'small']
 
 function toPost(item, index) {
@@ -65,9 +59,11 @@ function toPost(item, index) {
 function HomePage() {
   const { accessToken } = useAuth()
   const [filters, setFilters] = useState([{ name: '전체' }])
+  const [filterError, setFilterError] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [feedPosts, setFeedPosts] = useState([])
   const [feedState, setFeedState] = useState('loading')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let isActive = true
@@ -75,12 +71,13 @@ function HomePage() {
     async function loadFilters() {
       if (!accessToken) return
 
+      setFilterError('')
       try {
         const data = await getSelectedInterestTypes(accessToken)
         const selectedTypes = data?.items ?? []
         if (isActive) setFilters([{ name: '전체' }, ...selectedTypes])
       } catch {
-        // Keep the fallback filters while the API is unavailable.
+        if (isActive) setFilterError('관심사 분류를 불러오지 못했습니다.')
       }
     }
 
@@ -88,14 +85,14 @@ function HomePage() {
     return () => {
       isActive = false
     }
-  }, [accessToken])
+  }, [accessToken, reloadKey])
 
   useEffect(() => {
     let isActive = true
 
     async function loadFeed() {
       if (!accessToken) {
-        if (isActive) setFeedState('error')
+        if (isActive) setFeedState('auth')
         return
       }
 
@@ -124,7 +121,7 @@ function HomePage() {
     return () => {
       isActive = false
     }
-  }, [accessToken, selectedCategory])
+  }, [accessToken, reloadKey, selectedCategory])
 
   return (
     <Page>
@@ -148,12 +145,24 @@ function HomePage() {
         </CategoryList>
       </FixedTop>
       <FeedArea>
-        {feedState === 'loading' && <FeedStatus>관심 정보를 불러오는 중입니다.</FeedStatus>}
-        {feedState === 'error' && <FeedStatus>관심 정보를 불러오지 못했습니다.</FeedStatus>}
-        {feedState === 'success' && feedPosts.length === 0 && (
-          <FeedStatus>표시할 관심 정보가 없습니다.</FeedStatus>
+        {filterError && (
+          <RequestState
+            message={filterError}
+            onRetry={() => setReloadKey((key) => key + 1)}
+          />
         )}
-        {feedState === 'success' && feedPosts.length > 0 && (
+        {!filterError && feedState === 'loading' && <RequestState message="관심 정보를 불러오는 중입니다." />}
+        {!filterError && feedState === 'auth' && <RequestState message="로그인이 필요합니다." />}
+        {!filterError && feedState === 'error' && (
+          <RequestState
+            message="관심 정보를 불러오지 못했습니다."
+            onRetry={() => setReloadKey((key) => key + 1)}
+          />
+        )}
+        {!filterError && feedState === 'success' && feedPosts.length === 0 && (
+          <RequestState message="표시할 관심 정보가 없습니다." />
+        )}
+        {!filterError && feedState === 'success' && feedPosts.length > 0 && (
           <PostFeed posts={feedPosts} />
         )}
       </FeedArea>

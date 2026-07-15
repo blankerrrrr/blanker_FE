@@ -9,7 +9,6 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage.jsx'
 import LoginPage from '../pages/LoginPage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import OnboardingPage from '../pages/OnboardingPage.jsx'
-import OtherInterestDetailPage from '../pages/OtherInterestDetailPage.jsx'
 import PostDetailPage from '../pages/PostDetailPage.jsx'
 import ProfilePage from '../pages/ProfilePage.jsx'
 import SearchPage from '../pages/SearchPage.jsx'
@@ -33,7 +32,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/onboarding/interests/other',
-    element: <RequireAuth><OtherInterestDetailPage /></RequireAuth>,
+    element: <RequireAuth><CategoryInterestDetailPage /></RequireAuth>,
   },
   {
     path: '/onboarding/interests/:categoryId',
@@ -61,7 +60,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/interest/other',
-    element: <RequireAuth><OtherInterestDetailPage /></RequireAuth>,
+    element: <RequireAuth><CategoryInterestDetailPage /></RequireAuth>,
   },
   {
     path: '/interest/:categoryId',

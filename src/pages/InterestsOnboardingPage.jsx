@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import logo from '../assets/logo.svg'
 import Button from '../components/Button.jsx'
 import CategoryButton from '../components/CategoryButton.jsx'
+import RequestState from '../components/RequestState.jsx'
 import { useInterestTypes } from '../hooks/useInterestTypes.js'
 
 const Page = styled.main`
@@ -57,23 +58,6 @@ const CategoryGrid = styled.div`
   gap: 10px;
 `
 
-const Status = styled.div`
-  display: grid;
-  min-height: 180px;
-  place-items: center;
-  color: #777;
-  font-size: 14px;
-  text-align: center;
-`
-
-const RetryButton = styled.button`
-  margin-top: 10px;
-  padding: 8px 14px;
-  border: 1px solid #d8d8d8;
-  border-radius: 10px;
-  background: #f8f8f8;
-`
-
 const NextButton = styled(Button)`
   position: fixed;
   bottom: max(20px, env(safe-area-inset-bottom));
@@ -98,7 +82,14 @@ function InterestsOnboardingPage() {
 
   const moveToDetail = () => {
     if (selectedCategories.length > 0) {
-      navigate(`/onboarding/interests/${selectedCategories[0]}`)
+      navigate(`/onboarding/interests/${selectedCategories[0]}`, {
+        state: {
+          categoryFlow: {
+            categoryIds: selectedCategories,
+            currentIndex: 0,
+          },
+        },
+      })
     }
   }
 
@@ -112,11 +103,9 @@ function InterestsOnboardingPage() {
       <Logo alt="BLANKER" src={logo} />
       <Intro><Description>관심사를 선택해주세요!</Description></Intro>
 
-      {isLoading && <Status>관심사 목록을 불러오는 중...</Status>}
+      {isLoading && <RequestState message="관심사 목록을 불러오는 중입니다." />}
       {!isLoading && error && (
-        <Status role="alert">
-          <div>{error}<br /><RetryButton onClick={retry}>다시 시도</RetryButton></div>
-        </Status>
+        <RequestState message={error} onRetry={retry} />
       )}
       {!isLoading && !error && (
         <CategoryGrid aria-label="관심사 카테고리">

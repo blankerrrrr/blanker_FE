@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth.js'
 import BottomTabBar from '../components/BottomTabBar.jsx'
 import HomeHeader from '../components/HomeHeader.jsx'
 import LinkCard from '../components/LinkCard.jsx'
+import RequestState from '../components/RequestState.jsx'
 import { normalizeBlockedItems } from '../data/blockedItems.js'
 
 const Page = styled.main`
@@ -34,12 +35,6 @@ const CardList = styled.div`
   display: grid;
   gap: 10px;
 `
-const Status = styled.p`
-  margin: 64px 0;
-  color: #777;
-  font-size: 14px;
-  text-align: center;
-`
 const GroupEmptyState = styled.p`
   padding: 20px 12px;
   border-radius: 14px;
@@ -47,14 +42,6 @@ const GroupEmptyState = styled.p`
   background: #f7f7f7;
   font-size: 12px;
   text-align: center;
-`
-const RetryButton = styled.button`
-  margin-top: 12px;
-  padding: 8px 14px;
-  border: 1px solid #d8d8d8;
-  border-radius: 10px;
-  background: #f8f8f8;
-  cursor: pointer;
 `
 
 function BlankPage() {
@@ -100,15 +87,12 @@ function BlankPage() {
         <HomeHeader />
       </Header>
       <Content>
-        {isLoading && <Status>보관함을 불러오는 중...</Status>}
+        {isLoading && <RequestState message="보관함을 불러오는 중입니다." />}
         {!isLoading && error && (
-          <Status role="alert">
-            {error}
-            <br />
-            <RetryButton onClick={() => setReloadKey((key) => key + 1)}>
-              다시 시도
-            </RetryButton>
-          </Status>
+          <RequestState
+            message={error}
+            onRetry={accessToken ? () => setReloadKey((key) => key + 1) : undefined}
+          />
         )}
         {!isLoading && !error && groups.map((group) => (
           <section key={group.title}>
@@ -143,7 +127,7 @@ function BlankPage() {
           </section>
         ))}
         {!isLoading && !error && !groups.length && (
-          <Status>보관된 스포일러 콘텐츠가 없습니다.</Status>
+          <RequestState message="보관된 스포일러 콘텐츠가 없습니다." />
         )}
       </Content>
       <BottomTabBar />

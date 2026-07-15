@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth.js'
 import BottomTabBar from '../components/BottomTabBar.jsx'
 import HomeHeader from '../components/HomeHeader.jsx'
 import LinkCard from '../components/LinkCard.jsx'
+import RequestState from '../components/RequestState.jsx'
 import { normalizeVisitHistory } from '../data/visitHistory.js'
 
 const Page = styled.main`
@@ -24,7 +25,7 @@ const FixedHeader = styled.div`
 `
 
 const Content = styled.div`
-  padding: 0 20px;
+  padding: 0 8px;
 `
 
 const Group = styled.section`
@@ -32,7 +33,7 @@ const Group = styled.section`
 `
 
 const DateTitle = styled.h1`
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
@@ -40,7 +41,7 @@ const DateTitle = styled.h1`
 
 const RecordList = styled.ul`
   display: grid;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -50,15 +51,6 @@ const Record = styled.li`
   min-width: 0;
 `
 
-
-const Status = styled.div`
-  display: grid;
-  min-height: 240px;
-  place-items: center;
-  color: #777;
-  font-size: 14px;
-  text-align: center;
-`
 
 const GroupEmptyState = styled.p`
   padding: 20px 12px;
@@ -74,6 +66,7 @@ function VisitHistoryPage() {
   const [groups, setGroups] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let isActive = true
@@ -85,6 +78,8 @@ function VisitHistoryPage() {
         return
       }
 
+      setError('')
+      setIsLoading(true)
       try {
         const data = await getVisitHistory(accessToken)
         if (isActive) setGroups(normalizeVisitHistory(data))
@@ -99,7 +94,7 @@ function VisitHistoryPage() {
     return () => {
       isActive = false
     }
-  }, [accessToken])
+  }, [accessToken, reloadKey])
 
   return (
     <Page>
@@ -107,10 +102,15 @@ function VisitHistoryPage() {
         <HomeHeader />
       </FixedHeader>
       <Content>
-        {isLoading && <Status>방문 기록을 불러오는 중...</Status>}
-        {!isLoading && error && <Status role="alert">{error}</Status>}
+        {isLoading && <RequestState message="방문 기록을 불러오는 중입니다." />}
+        {!isLoading && error && (
+          <RequestState
+            message={error}
+            onRetry={accessToken ? () => setReloadKey((key) => key + 1) : undefined}
+          />
+        )}
         {!isLoading && !error && groups.length === 0 && (
-          <Status>방문 기록이 없습니다.</Status>
+          <RequestState message="방문 기록이 없습니다." />
         )}
         {!isLoading && !error && groups.length > 0 && (
           <div aria-label="방문 기록" role="list">

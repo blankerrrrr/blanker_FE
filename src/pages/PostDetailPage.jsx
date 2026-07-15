@@ -5,6 +5,7 @@ import { getInterestItem } from '../api/interestsApi.js'
 import { useAuth } from '../auth/useAuth.js'
 import BackButton from '../components/BackButton.jsx'
 import Icon from '../components/Icon.jsx'
+import RequestState from '../components/RequestState.jsx'
 
 const Page = styled.main`
   position: relative;
@@ -170,13 +171,14 @@ function PostDetailPage() {
   const { accessToken } = useAuth()
   const [item, setItem] = useState(null)
   const [pageState, setPageState] = useState('loading')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let isActive = true
 
     async function loadItem() {
       if (!accessToken) {
-        if (isActive) setPageState('error')
+        if (isActive) setPageState('auth')
         return
       }
 
@@ -199,18 +201,36 @@ function PostDetailPage() {
     return () => {
       isActive = false
     }
-  }, [accessToken, postId])
+  }, [accessToken, postId, reloadKey])
 
   if (pageState === 'loading') {
-    return <EmptyState>관심 정보를 불러오는 중입니다.</EmptyState>
+    return <EmptyState><RequestState message="관심 정보를 불러오는 중입니다." /></EmptyState>
+  }
+
+  if (pageState === 'auth') {
+    return <EmptyState><RequestState message="로그인이 필요합니다." /></EmptyState>
   }
 
   if (pageState === 'not-found') {
-    return <EmptyState>관심 정보를 찾을 수 없습니다.</EmptyState>
+    return (
+      <EmptyState>
+        <RequestState
+          message="관심 정보를 찾을 수 없습니다."
+          onRetry={() => setReloadKey((key) => key + 1)}
+        />
+      </EmptyState>
+    )
   }
 
   if (pageState === 'error' || !item) {
-    return <EmptyState>관심 정보를 불러오지 못했습니다.</EmptyState>
+    return (
+      <EmptyState>
+        <RequestState
+          message="관심 정보를 불러오지 못했습니다."
+          onRetry={() => setReloadKey((key) => key + 1)}
+        />
+      </EmptyState>
+    )
   }
 
   const handleShare = async () => {

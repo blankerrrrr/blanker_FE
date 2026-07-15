@@ -9,6 +9,9 @@ import {
 import logo from '../assets/logo.svg'
 import { useAuth } from '../auth/useAuth.js'
 import Button from '../components/Button.jsx'
+import InterestTopicInput from '../components/InterestTopicInput.jsx'
+import InterestTargetCard from '../components/InterestTargetCard.jsx'
+import RequestState from '../components/RequestState.jsx'
 import { interestCategoryConfigs } from '../data/interestOnboarding.js'
 
 const Page = styled.main`
@@ -153,113 +156,10 @@ const SensitivityInput = styled.input`
   }
 `
 
-const TopicForm = styled.form`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 53px;
-  height: 53px;
-  overflow: hidden;
-  border: 1px solid #d8d8d8;
-  border-radius: 27px;
-  background: #f8f8f8;
-`
-
-const TopicInput = styled.input`
-  min-width: 0;
-  height: 100%;
-  padding: 0 20px;
-  border: 0;
-  outline: 0;
-  color: #000;
-  background: transparent;
-  font-size: 14px;
-
-  &::placeholder {
-    color: #999;
-  }
-`
-
-const AddButton = styled.button`
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-left: 1px solid #d8d8d8;
-  color: #d8d8d8;
-  background: #f8f8f8;
-  font-size: 24px;
-  font-weight: 200;
-  cursor: pointer;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-`
-
-const RequestError = styled.p`
-  margin: 0;
-  color: #c62828;
-  font-size: 12px;
-`
-
 const InterestList = styled.div`
   display: grid;
   gap: 10px;
   margin-top: 16px;
-`
-
-const InterestCard = styled.button`
-  position: relative;
-  width: 100%;
-  min-height: 76px;
-  padding: 12px;
-  overflow: hidden;
-  border: 1px solid #d8d8d8;
-  border-radius: 15px;
-  color: ${({ $hasImage }) => ($hasImage ? '#fff' : '#000')};
-  background: #f8f8f8;
-  text-align: left;
-  cursor: pointer;
-`
-
-const CardImage = styled.img`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`
-
-const CardOverlay = styled(Overlay)`
-  background: rgb(0 0 0 / 45%);
-`
-
-const CardContent = styled.div`
-  position: relative;
-  z-index: 1;
-`
-
-const RegisteredBadge = styled.span`
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  right: 12px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: #168bea;
-  color: #fff;
-  font-size: 11px;
-`
-
-const CardTitle = styled.h2`
-  margin: 0 0 4px;
-  font-size: 15px;
-  line-height: 1.2;
-`
-
-const CardDescription = styled.p`
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.35;
 `
 
 const NextButton = styled(Button)`
@@ -282,6 +182,8 @@ function OtherInterestDetailPage() {
   const [allSelectedTargets, setAllSelectedTargets] = useState([])
   const [isRequesting, setIsRequesting] = useState(false)
   const [requestError, setRequestError] = useState('')
+  const [errorSource, setErrorSource] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
   const isEditMode = location.pathname === '/interest/other'
 
   useEffect(() => {
@@ -308,7 +210,10 @@ function OtherInterestDetailPage() {
             })),
         )
       } catch {
-        if (isActive) setRequestError('선택한 관심사를 불러오지 못했습니다.')
+        if (isActive) {
+          setRequestError('선택한 관심사를 불러오지 못했습니다.')
+          setErrorSource('load')
+        }
       }
     }
 
@@ -316,7 +221,7 @@ function OtherInterestDetailPage() {
     return () => {
       isActive = false
     }
-  }, [accessToken, config.label, isEditMode])
+  }, [accessToken, config.label, isEditMode, reloadKey])
 
   const handleRequestTopicInfo = async (event) => {
     event.preventDefault()
@@ -325,15 +230,15 @@ function OtherInterestDetailPage() {
 
     setIsRequesting(true)
     setRequestError('')
+    setErrorSource('')
 
     try {
       const result = await createInterestTarget(accessToken, title)
       const createdTopic = {
         id: result.interestTargetId,
-        title: result.name,
-        description:
-          result.keywords?.join(' · ') || '개인 관심사로 등록되었습니다.',
-        imageSrc: null,
+        title: result.title ?? result.name,
+        summary: result.summary,
+        imageUrl: result.imageUrl,
         registered: true,
       }
       setTopics((current) => [
@@ -343,6 +248,7 @@ function OtherInterestDetailPage() {
       setTopic('')
     } catch (error) {
       setRequestError(error.message)
+      setErrorSource('create')
     } finally {
       setIsRequesting(false)
     }
@@ -365,16 +271,19 @@ function OtherInterestDetailPage() {
 
     if (interestIds.length === 0) {
       setRequestError('관심사는 최소 1개 이상 선택해야 합니다.')
+      setErrorSource('validation')
       return
     }
 
     setIsRequesting(true)
     setRequestError('')
+    setErrorSource('')
     try {
       await syncSelectedInterestTargets(accessToken, interestIds)
       navigate('/interest')
     } catch (error) {
       setRequestError(error.message)
+      setErrorSource('sync')
       setIsRequesting(false)
     }
   }
@@ -418,47 +327,43 @@ function OtherInterestDetailPage() {
 
       <Section>
         <SectionLabel>현재 관심있는 주제를 입력해주세요.</SectionLabel>
-        <TopicForm onSubmit={handleRequestTopicInfo}>
-          <TopicInput
-            onChange={(event) => setTopic(event.target.value)}
-            placeholder="관심있는 주제를 입력해주세요."
-            value={topic}
+        <InterestTopicInput
+          buttonLabel="관심 주제 추가"
+          disabled={!topic.trim() || isRequesting}
+          inputLabel="관심 주제 입력"
+          onChange={(event) => setTopic(event.target.value)}
+          onSubmit={handleRequestTopicInfo}
+          placeholder="관심있는 주제를 입력해주세요."
+          value={topic}
+        />
+        {requestError && (
+          <RequestState
+            compact
+            message={requestError}
+            onRetry={errorSource === 'load'
+              ? () => setReloadKey((key) => key + 1)
+              : errorSource === 'create'
+                ? () => handleRequestTopicInfo({ preventDefault() {} })
+                : errorSource === 'sync'
+                  ? moveToHome
+                  : undefined}
           />
-          <AddButton
-            aria-label="관심 주제 추가"
-            disabled={!topic.trim() || isRequesting}
-            type="submit"
-          >
-            +
-          </AddButton>
-        </TopicForm>
-        {requestError && <RequestError role="alert">{requestError}</RequestError>}
+        )}
       </Section>
 
       <InterestList aria-live="polite">
         {topics.map((item) => (
-          <InterestCard
-            $hasImage={Boolean(item.imageSrc)}
+          <InterestTargetCard
+            imageUrl={item.imageUrl ?? item.imageSrc}
             key={item.id}
             onClick={() =>
               setTopics((current) =>
                 current.filter((topicItem) => topicItem.id !== item.id),
               )
             }
-            type="button"
-          >
-            {item.registered && <RegisteredBadge>등록됨</RegisteredBadge>}
-            {item.imageSrc && (
-              <>
-                <CardImage alt="" aria-hidden="true" src={item.imageSrc} />
-                <CardOverlay />
-              </>
-            )}
-            <CardContent>
-              <CardTitle>{item.title}</CardTitle>
-              <CardDescription>{item.description}</CardDescription>
-            </CardContent>
-          </InterestCard>
+            summary={item.summary ?? item.description}
+            title={item.title}
+          />
         ))}
       </InterestList>
 
