@@ -323,11 +323,19 @@ function CategoryInterestDetailPage() {
   }
 
   const toggleInterest = (interestId) => {
+    const isSelected = selectedIds.includes(interestId)
+
     setSelectedIds((current) =>
       current.includes(interestId)
         ? current.filter((id) => id !== interestId)
         : [...current, interestId],
     )
+
+    if (isEditMode && keyword && isSelected) {
+      setItems((current) =>
+        current.filter((item) => item.interestId !== interestId),
+      )
+    }
   }
 
   const handleSubmit = async () => {
@@ -345,13 +353,6 @@ function CategoryInterestDetailPage() {
         const nextSelectedIds = [
           ...new Set([...preservedIds, ...selectedIds]),
         ]
-
-        if (nextSelectedIds.length === 0) {
-          setError('관심사는 최소 1개 이상 선택해야 합니다.')
-          setErrorSource('validation')
-          setIsSubmitting(false)
-          return
-        }
 
         const data = await syncSelectedInterestTargets(
           accessToken,
@@ -386,6 +387,25 @@ function CategoryInterestDetailPage() {
       setIsSubmitting(false)
     }
   }
+
+  const selectedTargetItems = allSelectedTargets
+    .filter(
+      (target) =>
+        target.interestType === config.label &&
+        selectedIds.includes(target.interestId),
+    )
+    .map((target) => ({
+      genre: target.genre,
+      imageUrl: target.imageUrl,
+      interestId: target.interestId,
+      title: target.title,
+    }))
+  const availableItemsById = new Map(
+    [...items, ...selectedTargetItems].map((item) => [item.interestId, item]),
+  )
+  const visibleItems = isEditMode && !keyword
+    ? selectedIds.map((interestId) => availableItemsById.get(interestId)).filter(Boolean)
+    : items
 
   return (
     <Page>
@@ -488,12 +508,12 @@ function CategoryInterestDetailPage() {
           onRetry={() => setReloadKey((key) => key + 1)}
         />
       )}
-      {selectionState === 'success' && pageState === 'success' && items.length === 0 && (
+      {selectionState === 'success' && pageState === 'success' && visibleItems.length === 0 && (
         <RequestState message="조건에 맞는 관심사가 없습니다." />
       )}
-      {selectionState === 'success' && pageState === 'success' && items.length > 0 && (
+      {selectionState === 'success' && pageState === 'success' && visibleItems.length > 0 && (
         <InterestList aria-label={`${config.label} 관심사 목록`}>
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <InterestTargetCard
               imageUrl={item.imageUrl}
               key={item.interestId}
